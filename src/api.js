@@ -2,8 +2,14 @@
 // Centraliza todas las llamadas al backend REST API
 
 // En desarrollo: Vite proxy redirige /api → localhost:5000
-// En producción: usar la URL del backend (configurar VITE_API_URL en el entorno)
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+// En producción: configurar VITE_API_URL con la URL del backend
+// Ejemplos válidos:
+//   VITE_API_URL=https://backend-4r18.onrender.com
+//   VITE_API_URL=https://backend-4r18.onrender.com/api
+const _rawUrl = import.meta.env.VITE_API_URL || "";
+const API_BASE = _rawUrl
+  ? (_rawUrl.endsWith("/api") ? _rawUrl : `${_rawUrl.replace(/\/+$/, "")}/api`)
+  : "/api";
 
 const api = {
   getToken: () => localStorage.getItem("actisis_token"),

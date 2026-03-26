@@ -133,11 +133,11 @@ function Dashboard({ user }) {
             return <div key={t} className="chart-bar-wrapper"><div className="chart-bar-value">{c}</div><div className="chart-bar" style={{ height: `${(c / mx) * 150}px`, background: typeColor(t) }} /><div className="chart-bar-label">{t.slice(0, 4)}</div></div>;
           })}</div>
         </div>
-        <div className="table-container">
-          <div className="table-header"><h3>Próximas Actividades</h3></div>
+        <div className="table-container" style={{ maxHeight: 320, display: "flex", flexDirection: "column" }}>
+          <div className="table-header" style={{ flexShrink: 0 }}><h3>Próximas Actividades</h3></div>
           {upcoming.length === 0 ? <div className="empty-state"><p>No hay actividades próximas</p></div> :
-            <div className="table-scroll"><table><thead><tr><th>Actividad</th><th>Fecha</th><th>Tipo</th></tr></thead><tbody>
-              {upcoming.map(a => <tr key={a._id}><td style={{ fontWeight: 600, fontSize: 13 }}>{a.nombre}</td><td style={{ fontSize: 12 }}>{formatDate(a.fechaInicio)}</td><td><span className={`badge ${typeBadge(a.tipo)}`}>{a.tipo}</span></td></tr>)}
+            <div className="table-scroll" style={{ flex: 1, overflow: "auto" }}><table><thead><tr><th>Actividad</th><th>Fecha</th><th>Tipo</th></tr></thead><tbody>
+              {upcoming.map(a => <tr key={a._id}><td style={{ fontWeight: 600, fontSize: 13, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nombre}</td><td style={{ fontSize: 12 }}>{formatDate(a.fechaInicio)}</td><td><span className={`badge ${typeBadge(a.tipo)}`}>{a.tipo}</span></td></tr>)}
             </tbody></table></div>}
         </div>
       </div>
@@ -151,7 +151,13 @@ function Dashboard({ user }) {
 function CalendarView() {
   const [activities, setActivities] = useState([]); const [loading, setLoading] = useState(true);
   const [cur, setCur] = useState(new Date());
-  useEffect(() => { (async () => { try { const d = await api.getActivities(); setActivities(d.actividades || []); } catch (e) {} finally { setLoading(false); } })(); }, []);
+  const [viewing, setViewing] = useState(null);
+  const [speakers, setSpeakers] = useState([]);
+
+  useEffect(() => { (async () => { try {
+    const [a, s] = await Promise.all([api.getActivities(), api.getSpeakersList()]);
+    setActivities(a.actividades || []); setSpeakers(s.conferencistas || []);
+  } catch (e) {} finally { setLoading(false); } })(); }, []);
 
   const y = cur.getFullYear(), m = cur.getMonth();
   const start = new Date(y, m, 1); start.setDate(start.getDate() - start.getDay());
@@ -159,6 +165,7 @@ function CalendarView() {
   const days = []; const d = new Date(start); while (d <= end) { days.push(new Date(d)); d.setDate(d.getDate() + 1); }
   const todayStr = new Date().toISOString().split("T")[0];
   const evts = (date) => { const ds = date.toISOString().split("T")[0]; return activities.filter(a => { const fi = toInputDate(a.fechaInicio), ff = toInputDate(a.fechaFin || a.fechaInicio); return ds >= fi && ds <= ff; }); };
+  const spName = (c) => { if (!c) return "—"; return typeof c === "object" ? c.nombre || "—" : (speakers.find(x => x._id === c)?.nombre || "—"); };
 
   if (loading) return <Loading text="Cargando calendario..." />;
   return (
@@ -176,11 +183,32 @@ function CalendarView() {
         {days.map((day, i) => { const ds = day.toISOString().split("T")[0]; const ev = evts(day); const ot = day.getMonth() !== m;
           return <div key={i} className={`cal-cell ${ot ? "other-month" : ""} ${ds === todayStr ? "today" : ""}`}>
             <div className="cal-day-num">{day.getDate()}</div>
-            {ev.slice(0, 3).map(e => <div key={e._id} className="cal-event" style={{ background: typeColorBg(e.tipo), color: typeColor(e.tipo) }} title={e.nombre}>{e.nombre}</div>)}
-            {ev.length > 3 && <div style={{ fontSize: 10, color: "var(--text-muted)", paddingLeft: 6 }}>+{ev.length - 3} más</div>}
+            <div className="cal-events-container">
+              {ev.slice(0, 2).map(e => <div key={e._id} className="cal-event" style={{ background: typeColorBg(e.tipo), color: typeColor(e.tipo) }} onClick={() => setViewing(e)} title={e.nombre}>{e.nombre}</div>)}
+              {ev.length > 2 && <div className="cal-event-more" onClick={() => { /* could open a day-detail in the future */ }}>+{ev.length - 2} más</div>}
+            </div>
           </div>;
         })}
       </div>
+
+      {/* Activity detail modal */}
+      <Modal show={!!viewing} onClose={() => setViewing(null)} title="Detalle de Actividad">{viewing && <div>
+        {[["Nombre", viewing.nombre],
+          ["Fechas", `${formatDate(viewing.fechaInicio)} – ${formatDate(viewing.fechaFin)}`],
+          ["Horario", viewing.horario],
+          ["Tipo", <span className={`badge ${typeBadge(viewing.tipo)}`}>{viewing.tipo}</span>],
+          ["Estado", <span className={`badge ${({"aprobada":"badge-green","pendiente":"badge-yellow","rechazada":"badge-red"})[viewing.estado] || "badge-blue"}`}>{viewing.estado || "aprobada"}</span>],
+          ["Semestre", viewing.semestre],
+          ["Temática", viewing.tematica],
+          ["Descripción", viewing.descripcion],
+          ["Lugar", viewing.lugar],
+          ["Conferencista", spName(viewing.conferencista)],
+          ["Movilidad", viewing.movilidad],
+          ["Docente", `${viewing.docente?.nombre || ""} ${viewing.docente?.apellido || ""}`],
+        ].map(([l, v]) =>
+          <div key={l} className="detail-row"><div className="detail-label">{l}</div><div className="detail-value">{v || "—"}</div></div>
+        )}
+      </div>}</Modal>
     </div>
   );
 }
