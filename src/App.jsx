@@ -155,7 +155,7 @@ function CalendarView() {
   const [speakers, setSpeakers] = useState([]);
 
   useEffect(() => { (async () => { try {
-    const [a, s] = await Promise.all([api.getActivities(), api.getSpeakersList()]);
+    const [a, s] = await Promise.all([api.getActivities("estado=aprobada&todas=true"), api.getSpeakersList()]);
     setActivities(a.actividades || []); setSpeakers(s.conferencistas || []);
   } catch (e) {} finally { setLoading(false); } })(); }, []);
 
