@@ -557,14 +557,9 @@ export default function App() {
     const saved = api.getUser();
     if (token && saved) {
       // Verificar token sin usar el interceptor de 401 que hace reload
-      fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => {
-          if (res.ok) return res.json();
-          throw new Error("Token inválido");
-        })
+      api.me()
         .then(d => { setCurrentUser(d.usuario); setView("app"); })
         .catch(() => {
-          // Token expirado/inválido: limpiar y mostrar login (sin reload)
           api.clearToken();
           api.clearUser();
           setView("login");

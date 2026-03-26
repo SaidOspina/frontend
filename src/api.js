@@ -1,10 +1,9 @@
 // ─── ACTISIS API Service ─────────────────────────────────────────────────────
 // Centraliza todas las llamadas al backend REST API
 
-const API_BASE = "/api"; // Vite proxy redirige a http://localhost:5000
-
-// Flag para evitar múltiples reloads simultáneos
-let isLoggingOut = false;
+// En desarrollo: Vite proxy redirige /api → localhost:5000
+// En producción: usar la URL del backend (configurar VITE_API_URL en el entorno)
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 const api = {
   getToken: () => localStorage.getItem("actisis_token"),
@@ -31,23 +30,32 @@ const api = {
       config.body = JSON.stringify(config.body);
     }
 
-    const res = await fetch(`${API_BASE}${endpoint}`, config);
+    let res;
+    try {
+      res = await fetch(`${API_BASE}${endpoint}`, config);
+    } catch (networkError) {
+      throw new Error("No se pudo conectar con el servidor. Verifique que el backend esté ejecutándose.");
+    }
 
     // Descarga de PDF
     if (res.headers.get("content-type")?.includes("application/pdf")) {
       return res.blob();
     }
 
-    const data = await res.json();
+    // Parseo seguro de JSON
+    let data;
+    try {
+      const text = await res.text();
+      data = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      throw new Error("El servidor no respondió correctamente. Verifique que el backend esté ejecutándose en el puerto correcto.");
+    }
 
     if (!res.ok) {
-      // Token expirado → limpiar sesión y recargar UNA sola vez
-      if (res.status === 401 && !isLoggingOut) {
-        isLoggingOut = true;
+      // Token expirado o inválido → limpiar sesión
+      if (res.status === 401) {
         this.clearToken();
         this.clearUser();
-        // Usar setTimeout para evitar recargas en cascada
-        setTimeout(() => { isLoggingOut = false; window.location.reload(); }, 100);
       }
       throw new Error(data.mensaje || data.errores?.[0]?.msg || "Error en la solicitud");
     }
