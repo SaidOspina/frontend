@@ -188,13 +188,17 @@ function CalendarView() {
 // ════════════════════════════════════════════════════════════════════════════
 // ACTIVITY FORM MODAL
 // ════════════════════════════════════════════════════════════════════════════
-function ActivityFormModal({ show, onClose, onSave, activity, speakers, agreements }) {
+function ActivityFormModal({ show, onClose, onSave, activity, speakers, agreements, user, docentes }) {
   const isEdit = !!activity;
-  const empty = { nombre: "", fechaInicio: "", fechaFin: "", horario: "", tipo: "", semestre: "", tematica: "", descripcion: "", lugar: "", conferencista: "", movilidad: "", convenio: "", publica: true };
+  const isAdmin = user?.rol === "admin";
+  const empty = { nombre: "", fechaInicio: "", fechaFin: "", horario: "", tipo: "", semestre: "", tematica: "", descripcion: "", lugar: "", conferencista: "", movilidad: "", convenio: "", publica: true, docente: "" };
   const [form, setForm] = useState(empty); const [errors, setErrors] = useState({}); const [saving, setSaving] = useState(false);
-  useEffect(() => { if (activity) setForm({ ...empty, ...activity, fechaInicio: toInputDate(activity.fechaInicio), fechaFin: toInputDate(activity.fechaFin), conferencista: activity.conferencista?._id || activity.conferencista || "", convenio: activity.convenio?._id || activity.convenio || "" }); else setForm(empty); }, [activity, show]);
+  useEffect(() => {
+    if (activity) setForm({ ...empty, ...activity, fechaInicio: toInputDate(activity.fechaInicio), fechaFin: toInputDate(activity.fechaFin), conferencista: activity.conferencista?._id || activity.conferencista || "", convenio: activity.convenio?._id || activity.convenio || "", docente: activity.docente?._id || activity.docente || "" });
+    else setForm({ ...empty, docente: isAdmin ? "" : user?._id || "" });
+  }, [activity, show]);
   const set = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: "" })); };
-  const validate = () => { const e = {}; if (!form.nombre.trim()) e.nombre = "Requerido"; if (!form.fechaInicio) e.fechaInicio = "Requerido"; if (!form.tipo) e.tipo = "Requerido"; if (!form.semestre) e.semestre = "Requerido"; setErrors(e); return !Object.keys(e).length; };
+  const validate = () => { const e = {}; if (!form.nombre.trim()) e.nombre = "Requerido"; if (!form.fechaInicio) e.fechaInicio = "Requerido"; if (!form.tipo) e.tipo = "Requerido"; if (!form.semestre) e.semestre = "Requerido"; if (isAdmin && !form.docente) e.docente = "Seleccione un docente"; setErrors(e); return !Object.keys(e).length; };
   const handleSave = async () => { if (!validate()) return; setSaving(true); try { await onSave({ ...form, fechaFin: form.fechaFin || form.fechaInicio }); onClose(); } catch (e) { addToast(e.message, "error"); } finally { setSaving(false); } };
 
   return (
@@ -202,7 +206,21 @@ function ActivityFormModal({ show, onClose, onSave, activity, speakers, agreemen
       <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
       <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? <Icons.Loader size={14} /> : <Icons.Check size={14} />} {isEdit ? "Guardar" : "Registrar"}</button>
     </>}>
+      {!isAdmin && !isEdit && (
+        <div style={{ background: "var(--warning-soft)", color: "var(--warning)", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+          Las actividades creadas por docentes quedan en estado <strong>pendiente</strong> hasta ser aprobadas por un administrador.
+        </div>
+      )}
       <div className="form-group"><label className="form-label">Nombre *</label><input className="form-input" value={form.nombre} onChange={e => set("nombre", e.target.value)} />{errors.nombre && <div className="form-error">{errors.nombre}</div>}</div>
+      {isAdmin && (
+        <div className="form-group"><label className="form-label">Docente asignado *</label>
+          <select className="form-select" value={form.docente} onChange={e => set("docente", e.target.value)}>
+            <option value="">Seleccione un docente...</option>
+            {docentes.map(d => <option key={d._id} value={d._id}>{d.nombre} {d.apellido} ({d.codigo})</option>)}
+          </select>
+          {errors.docente && <div className="form-error">{errors.docente}</div>}
+        </div>
+      )}
       <div className="form-row">
         <div className="form-group"><label className="form-label">Fecha Inicio *</label><input className="form-input" type="date" value={form.fechaInicio} onChange={e => set("fechaInicio", e.target.value)} />{errors.fechaInicio && <div className="form-error">{errors.fechaInicio}</div>}</div>
         <div className="form-group"><label className="form-label">Fecha Fin</label><input className="form-input" type="date" value={form.fechaFin} onChange={e => set("fechaFin", e.target.value)} /></div>
@@ -222,7 +240,9 @@ function ActivityFormModal({ show, onClose, onSave, activity, speakers, agreemen
         <div className="form-group"><label className="form-label">Conferencista</label><select className="form-select" value={form.conferencista} onChange={e => set("conferencista", e.target.value)}><option value="">Sin conferencista</option>{speakers.map(s => <option key={s._id} value={s._id}>{s.nombre}</option>)}</select></div>
       </div>
       <div className="form-group"><label className="form-label">Convenio</label><select className="form-select" value={form.convenio} onChange={e => set("convenio", e.target.value)}><option value="">Sin convenio</option>{agreements.map(a => <option key={a._id} value={a._id}>{a.numero} – {a.empresa}</option>)}</select></div>
-      <div className="form-group" style={{ display: "flex", alignItems: "center", gap: 10 }}><input type="checkbox" checked={form.publica} onChange={e => set("publica", e.target.checked)} style={{ width: 18, height: 18, accentColor: "var(--accent)" }} /><label style={{ fontSize: 13, color: "var(--text-secondary)" }}>Visible en la vista pública</label></div>
+      {isAdmin && (
+        <div className="form-group" style={{ display: "flex", alignItems: "center", gap: 10 }}><input type="checkbox" checked={form.publica} onChange={e => set("publica", e.target.checked)} style={{ width: 18, height: 18, accentColor: "var(--accent)" }} /><label style={{ fontSize: 13, color: "var(--text-secondary)" }}>Visible en la vista pública</label></div>
+      )}
     </Modal>
   );
 }
@@ -230,49 +250,96 @@ function ActivityFormModal({ show, onClose, onSave, activity, speakers, agreemen
 // ════════════════════════════════════════════════════════════════════════════
 // ACTIVITIES MODULE
 // ════════════════════════════════════════════════════════════════════════════
+const estadoBadge = (e) => ({ "aprobada": "badge-green", "pendiente": "badge-yellow", "rechazada": "badge-red" }[e] || "badge-blue");
+
 function ActivitiesModule({ user }) {
-  const [activities, setActivities] = useState([]); const [speakers, setSpeakers] = useState([]); const [agreements, setAgreements] = useState([]);
+  const [activities, setActivities] = useState([]); const [speakers, setSpeakers] = useState([]); const [agreements, setAgreements] = useState([]); const [docentes, setDocentes] = useState([]);
   const [loading, setLoading] = useState(true); const [showForm, setShowForm] = useState(false); const [editing, setEditing] = useState(null); const [viewing, setViewing] = useState(null);
-  const [search, setSearch] = useState(""); const [filterType, setFilterType] = useState("");
+  const [search, setSearch] = useState(""); const [filterType, setFilterType] = useState(""); const [filterEstado, setFilterEstado] = useState("");
+  const [rejectId, setRejectId] = useState(null); const [rejectMotivo, setRejectMotivo] = useState("");
+
+  const isAdmin = user?.rol === "admin";
 
   const load = useCallback(async () => { try {
-    const qs = new URLSearchParams(); if (search) qs.set("search", search); if (filterType) qs.set("tipo", filterType);
-    const [a, s, g] = await Promise.all([api.getActivities(qs.toString()), api.getSpeakersList(), api.getAgreementsList()]);
+    const qs = new URLSearchParams(); if (search) qs.set("search", search); if (filterType) qs.set("tipo", filterType); if (filterEstado) qs.set("estado", filterEstado);
+    const promises = [api.getActivities(qs.toString()), api.getSpeakersList(), api.getAgreementsList()];
+    if (isAdmin) promises.push(api.getUsers());
+    const [a, s, g, u] = await Promise.all(promises);
     setActivities(a.actividades || []); setSpeakers(s.conferencistas || []); setAgreements(g.convenios || []);
-  } catch (e) { addToast(e.message, "error"); } finally { setLoading(false); } }, [search, filterType]);
+    if (u) setDocentes(u.usuarios || []);
+  } catch (e) { addToast(e.message, "error"); } finally { setLoading(false); } }, [search, filterType, filterEstado, isAdmin]);
   useEffect(() => { load(); }, [load]);
 
   const handleSave = async (form) => { if (editing) { await api.updateActivity(editing._id, form); addToast("Actividad actualizada"); } else { await api.createActivity(form); addToast("Actividad registrada"); } setEditing(null); load(); };
   const handleDelete = async (id) => { if (!confirm("¿Eliminar esta actividad?")) return; try { await api.deleteActivity(id); addToast("Actividad eliminada", "error"); load(); } catch (e) { addToast(e.message, "error"); } };
+  const handleApprove = async (id) => { try { await api.approveActivity(id, { publica: true }); addToast("Actividad aprobada"); load(); } catch (e) { addToast(e.message, "error"); } };
+  const handleReject = async () => { if (!rejectId) return; try { await api.rejectActivity(rejectId, rejectMotivo); addToast("Actividad rechazada", "error"); setRejectId(null); setRejectMotivo(""); load(); } catch (e) { addToast(e.message, "error"); } };
+
   const spName = (c) => { if (!c) return "—"; return typeof c === "object" ? c.nombre || "—" : (speakers.find(x => x._id === c)?.nombre || "—"); };
   const agNum = (c) => { if (!c) return "—"; return typeof c === "object" ? c.numero || "—" : (agreements.find(x => x._id === c)?.numero || "—"); };
+
+  const pendingCount = activities.filter(a => a.estado === "pendiente").length;
 
   if (loading) return <Loading text="Cargando actividades..." />;
   return (
     <div className="fade-in">
+      {isAdmin && pendingCount > 0 && (
+        <div style={{ background: "var(--warning-soft)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "14px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 20 }}>⏳</span>
+          <div><strong style={{ color: "var(--warning)" }}>{pendingCount} actividad{pendingCount > 1 ? "es" : ""} pendiente{pendingCount > 1 ? "s" : ""} de aprobación.</strong>
+            <span style={{ color: "var(--text-secondary)", fontSize: 13, marginLeft: 8 }}>Filtre por estado "Pendiente" para revisarlas.</span>
+          </div>
+        </div>
+      )}
       <div className="table-container">
         <div className="table-header">
-          <h3>Actividades {user.rol === "admin" ? "(Todas)" : "(Mis actividades)"}</h3>
+          <h3>Actividades {isAdmin ? "(Todas)" : "(Mis actividades)"}</h3>
           <div className="table-actions">
-            <div className="search-box"><Icons.Search size={14} /><input className="form-input" style={{ paddingLeft: 34, width: 200 }} placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} /></div>
-            <select className="form-select" style={{ width: 160 }} value={filterType} onChange={e => setFilterType(e.target.value)}><option value="">Todos los tipos</option>{ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+            <div className="search-box"><Icons.Search size={14} /><input className="form-input" style={{ paddingLeft: 34, width: 180 }} placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} /></div>
+            <select className="form-select" style={{ width: 150 }} value={filterType} onChange={e => setFilterType(e.target.value)}><option value="">Todos los tipos</option>{ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+            <select className="form-select" style={{ width: 140 }} value={filterEstado} onChange={e => setFilterEstado(e.target.value)}><option value="">Todo estado</option><option value="pendiente">Pendiente</option><option value="aprobada">Aprobada</option><option value="rechazada">Rechazada</option></select>
             <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}><Icons.Plus size={14} /> Nueva</button>
           </div>
         </div>
         {activities.length === 0 ? <div className="empty-state"><Icons.FileText size={40} /><p>No hay actividades registradas</p></div> :
-          <div className="table-scroll"><table><thead><tr><th>Nombre</th><th>Fecha</th><th>Tipo</th><th>Semestre</th><th>Lugar</th>{user.rol === "admin" && <th>Docente</th>}<th>Acciones</th></tr></thead><tbody>
-            {activities.map(a => <tr key={a._id}><td style={{ fontWeight: 600 }}>{a.nombre}</td><td style={{ fontSize: 12 }}>{formatDate(a.fechaInicio)}</td><td><span className={`badge ${typeBadge(a.tipo)}`}>{a.tipo}</span></td><td>{a.semestre}</td><td>{a.lugar || "—"}</td>
-              {user.rol === "admin" && <td style={{ fontSize: 12 }}>{a.docente?.nombre} {a.docente?.apellido}</td>}
-              <td><div style={{ display: "flex", gap: 4 }}><button className="btn btn-secondary btn-sm btn-icon" onClick={() => setViewing(a)}><Icons.Eye size={14} /></button><button className="btn btn-secondary btn-sm btn-icon" onClick={() => { setEditing(a); setShowForm(true); }}><Icons.Edit size={14} /></button><button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(a._id)}><Icons.Trash size={14} /></button></div></td>
+          <div className="table-scroll"><table><thead><tr><th>Nombre</th><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Semestre</th>{isAdmin && <th>Docente</th>}<th>Acciones</th></tr></thead><tbody>
+            {activities.map(a => <tr key={a._id}>
+              <td style={{ fontWeight: 600 }}>{a.nombre}</td>
+              <td style={{ fontSize: 12 }}>{formatDate(a.fechaInicio)}</td>
+              <td><span className={`badge ${typeBadge(a.tipo)}`}>{a.tipo}</span></td>
+              <td><span className={`badge ${estadoBadge(a.estado)}`}>{a.estado || "aprobada"}</span></td>
+              <td>{a.semestre}</td>
+              {isAdmin && <td style={{ fontSize: 12 }}>{a.docente?.nombre} {a.docente?.apellido}</td>}
+              <td><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setViewing(a)} title="Ver"><Icons.Eye size={14} /></button>
+                <button className="btn btn-secondary btn-sm btn-icon" onClick={() => { setEditing(a); setShowForm(true); }} title="Editar"><Icons.Edit size={14} /></button>
+                {isAdmin && a.estado === "pendiente" && <>
+                  <button className="btn btn-success btn-sm" onClick={() => handleApprove(a._id)} title="Aprobar"><Icons.Check size={14} /> Aprobar</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => { setRejectId(a._id); setRejectMotivo(""); }} title="Rechazar"><Icons.X size={14} /></button>
+                </>}
+                <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(a._id)} title="Eliminar"><Icons.Trash size={14} /></button>
+              </div></td>
             </tr>)}
           </tbody></table></div>}
       </div>
-      <ActivityFormModal show={showForm} onClose={() => { setShowForm(false); setEditing(null); }} onSave={handleSave} activity={editing} speakers={speakers} agreements={agreements} />
+      <ActivityFormModal show={showForm} onClose={() => { setShowForm(false); setEditing(null); }} onSave={handleSave} activity={editing} speakers={speakers} agreements={agreements} user={user} docentes={docentes} />
+      {/* Detail modal */}
       <Modal show={!!viewing} onClose={() => setViewing(null)} title="Detalle de Actividad">{viewing && <div>
-        {[["Nombre", viewing.nombre], ["Fechas", `${formatDate(viewing.fechaInicio)} – ${formatDate(viewing.fechaFin)}`], ["Horario", viewing.horario], ["Tipo", <span className={`badge ${typeBadge(viewing.tipo)}`}>{viewing.tipo}</span>], ["Semestre", viewing.semestre], ["Temática", viewing.tematica], ["Descripción", viewing.descripcion], ["Lugar", viewing.lugar], ["Conferencista", spName(viewing.conferencista)], ["Movilidad", viewing.movilidad], ["Convenio", agNum(viewing.convenio)], ["Docente", `${viewing.docente?.nombre || ""} ${viewing.docente?.apellido || ""}`], ["Pública", viewing.publica ? "Sí" : "No"]].map(([l, v]) =>
+        {[["Nombre", viewing.nombre], ["Fechas", `${formatDate(viewing.fechaInicio)} – ${formatDate(viewing.fechaFin)}`], ["Horario", viewing.horario], ["Tipo", <span className={`badge ${typeBadge(viewing.tipo)}`}>{viewing.tipo}</span>],
+          ["Estado", <span className={`badge ${estadoBadge(viewing.estado)}`}>{viewing.estado || "aprobada"}</span>],
+          ...(viewing.estado === "rechazada" && viewing.motivoRechazo ? [["Motivo rechazo", <span style={{ color: "var(--danger)" }}>{viewing.motivoRechazo}</span>]] : []),
+          ["Semestre", viewing.semestre], ["Temática", viewing.tematica], ["Descripción", viewing.descripcion], ["Lugar", viewing.lugar], ["Conferencista", spName(viewing.conferencista)], ["Movilidad", viewing.movilidad], ["Convenio", agNum(viewing.convenio)], ["Docente", `${viewing.docente?.nombre || ""} ${viewing.docente?.apellido || ""}`], ["Pública", viewing.publica ? "Sí" : "No"]].map(([l, v]) =>
           <div key={l} className="detail-row"><div className="detail-label">{l}</div><div className="detail-value">{v || "—"}</div></div>
         )}
       </div>}</Modal>
+      {/* Reject modal */}
+      <Modal show={!!rejectId} onClose={() => setRejectId(null)} title="Rechazar Actividad" footer={<>
+        <button className="btn btn-secondary" onClick={() => setRejectId(null)}>Cancelar</button>
+        <button className="btn btn-danger" onClick={handleReject}><Icons.X size={14} /> Rechazar</button>
+      </>}>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 16 }}>Indique el motivo del rechazo para que el docente pueda corregir la actividad:</p>
+        <div className="form-group"><label className="form-label">Motivo del rechazo</label><textarea className="form-textarea" value={rejectMotivo} onChange={e => setRejectMotivo(e.target.value)} placeholder="Describa el motivo..." /></div>
+      </Modal>
     </div>
   );
 }

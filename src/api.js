@@ -76,6 +76,8 @@ const api = {
   createActivity: (data) => api.post("/activities", data),
   updateActivity: (id, data) => { if (!id) return Promise.reject(new Error("ID requerido")); return api.put(`/activities/${id}`, data); },
   deleteActivity: (id) => { if (!id) return Promise.reject(new Error("ID requerido")); return api.del(`/activities/${id}`); },
+  approveActivity: (id, data = {}) => { if (!id) return Promise.reject(new Error("ID requerido")); return api.patch(`/activities/${id}/approve`, data); },
+  rejectActivity: (id, motivo = "") => { if (!id) return Promise.reject(new Error("ID requerido")); return api.patch(`/activities/${id}/reject`, { motivo }); },
   getActivityStats: (params = "") => api.get(`/activities/stats${params ? "?" + params : ""}`),
 
   // ─── Users ───
