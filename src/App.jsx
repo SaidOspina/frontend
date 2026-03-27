@@ -155,7 +155,7 @@ function CalendarView() {
   const [speakers, setSpeakers] = useState([]);
 
   useEffect(() => { (async () => { try {
-    const [a, s] = await Promise.all([api.getActivities("estado=aprobada&todas=true"), api.getSpeakersList()]);
+    const [a, s] = await Promise.all([api.getActivities("todas=true"), api.getSpeakersList()]);
     setActivities(a.actividades || []); setSpeakers(s.conferencistas || []);
   } catch (e) {} finally { setLoading(false); } })(); }, []);
 
@@ -572,6 +572,153 @@ function ProfileModule({ user, onUserUpdate }) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// REGISTER PAGE (completar registro desde enlace de invitación)
+// ════════════════════════════════════════════════════════════════════════════
+function RegisterPage({ token, onComplete, onGoLogin }) {
+  const [form, setForm] = useState({ nombre: "", apellido: "", documento: "", codigo: "", password: "", passwordConfirm: "", tipo: "Planta" });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const set = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: "" })); };
+
+  const validate = () => {
+    const e = {};
+    if (!form.nombre.trim()) e.nombre = "Requerido";
+    if (!form.apellido.trim()) e.apellido = "Requerido";
+    if (!form.documento.trim()) e.documento = "Requerido";
+    if (!form.codigo.trim()) e.codigo = "Requerido";
+    if (!form.password || form.password.length < 6) e.password = "Mínimo 6 caracteres";
+    if (form.password !== form.passwordConfirm) e.passwordConfirm = "Las contraseñas no coinciden";
+    setErrors(e);
+    return !Object.keys(e).length;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setLoading(true); setError("");
+    try {
+      const data = await api.register(token, {
+        nombre: form.nombre, apellido: form.apellido, documento: form.documento,
+        codigo: form.codigo, password: form.password, tipo: form.tipo,
+      });
+      api.setToken(data.token);
+      api.setUser(data.usuario);
+      setSuccess(true);
+      setTimeout(() => onComplete(data.usuario), 2000);
+    } catch (e) {
+      setError(e.message);
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="login-page"><div className="login-bg" />
+      <div className="login-card slide-up" style={{ maxWidth: 480 }}>
+        <div style={{ textAlign: "center", marginBottom: 8 }}>
+          <div className="brand-icon" style={{ width: 56, height: 56, fontSize: 24, margin: "0 auto 16px", borderRadius: 14 }}>A</div>
+        </div>
+        <h1>ACTISIS</h1>
+        <p className="subtitle">Completar Registro</p>
+
+        {success ? (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "var(--success-soft)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <Icons.Check size={30} color="var(--success)" />
+            </div>
+            <h3 style={{ fontSize: 18, marginBottom: 8, color: "var(--success)" }}>Registro completado</h3>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Redirigiendo al panel...</p>
+          </div>
+        ) : (<>
+          {error && <div className="login-error">{error}</div>}
+          <div className="form-row">
+            <div className="form-group"><label className="form-label">Nombre *</label><input className="form-input" value={form.nombre} onChange={e => set("nombre", e.target.value)} placeholder="Su nombre" />{errors.nombre && <div className="form-error">{errors.nombre}</div>}</div>
+            <div className="form-group"><label className="form-label">Apellido *</label><input className="form-input" value={form.apellido} onChange={e => set("apellido", e.target.value)} placeholder="Su apellido" />{errors.apellido && <div className="form-error">{errors.apellido}</div>}</div>
+          </div>
+          <div className="form-row">
+            <div className="form-group"><label className="form-label">Documento *</label><input className="form-input" value={form.documento} onChange={e => set("documento", e.target.value)} placeholder="Número de documento" />{errors.documento && <div className="form-error">{errors.documento}</div>}</div>
+            <div className="form-group"><label className="form-label">Código *</label><input className="form-input" value={form.codigo} onChange={e => set("codigo", e.target.value)} placeholder="Código institucional" />{errors.codigo && <div className="form-error">{errors.codigo}</div>}</div>
+          </div>
+          <div className="form-group"><label className="form-label">Tipo de vinculación</label>
+            <select className="form-select" value={form.tipo} onChange={e => set("tipo", e.target.value)}>
+              <option value="Planta">Planta</option><option value="Cátedra">Cátedra</option><option value="Ocasional">Ocasional</option>
+            </select>
+          </div>
+          <div className="form-row">
+            <div className="form-group"><label className="form-label">Contraseña *</label><input className="form-input" type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="Mínimo 6 caracteres" />{errors.password && <div className="form-error">{errors.password}</div>}</div>
+            <div className="form-group"><label className="form-label">Confirmar *</label><input className="form-input" type="password" value={form.passwordConfirm} onChange={e => set("passwordConfirm", e.target.value)} placeholder="Repita la contraseña" />{errors.passwordConfirm && <div className="form-error">{errors.passwordConfirm}</div>}</div>
+          </div>
+          <button className="btn btn-primary" style={{ width: "100%", padding: 12, fontSize: 15, marginTop: 8 }} onClick={handleSubmit} disabled={loading}>
+            {loading ? <Icons.Loader size={16} /> : <Icons.Check size={16} />} {loading ? "Registrando..." : "Completar Registro"}
+          </button>
+        </>)}
+
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <button onClick={onGoLogin} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-body)" }}>Ya tengo cuenta — Iniciar Sesión</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// RESET PASSWORD PAGE
+// ════════════════════════════════════════════════════════════════════════════
+function ResetPasswordPage({ token, onGoLogin }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!password || password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres"); return; }
+    if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
+    setLoading(true);
+    try {
+      await api.resetPassword(token, { password });
+      setSuccess(true);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="login-page"><div className="login-bg" />
+      <div className="login-card slide-up">
+        <div style={{ textAlign: "center", marginBottom: 8 }}>
+          <div className="brand-icon" style={{ width: 56, height: 56, fontSize: 24, margin: "0 auto 16px", borderRadius: 14 }}>A</div>
+        </div>
+        <h1>ACTISIS</h1>
+        <p className="subtitle">Restablecer Contraseña</p>
+
+        {success ? (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "var(--success-soft)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <Icons.Check size={30} color="var(--success)" />
+            </div>
+            <h3 style={{ fontSize: 18, marginBottom: 8, color: "var(--success)" }}>Contraseña actualizada</h3>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 20 }}>Ya puede iniciar sesión con su nueva contraseña.</p>
+            <button className="btn btn-primary" onClick={onGoLogin}><Icons.Lock size={14} /> Ir a Iniciar Sesión</button>
+          </div>
+        ) : (<>
+          {error && <div className="login-error">{error}</div>}
+          <div className="form-group"><label className="form-label">Nueva contraseña</label><input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" /></div>
+          <div className="form-group"><label className="form-label">Confirmar contraseña</label><input className="form-input" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repita la contraseña" /></div>
+          <button className="btn btn-primary" style={{ width: "100%", padding: 12, fontSize: 15, marginTop: 8 }} onClick={handleSubmit} disabled={loading}>
+            {loading ? <Icons.Loader size={16} /> : <Icons.Lock size={16} />} {loading ? "Actualizando..." : "Restablecer Contraseña"}
+          </button>
+        </>)}
+
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <button onClick={onGoLogin} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-body)" }}>Volver a Iniciar Sesión</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ════════════════════════════════════════════════════════════════════════════
 export default function App() {
@@ -579,25 +726,53 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [page, setPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [routeToken, setRouteToken] = useState(null);
 
+  // ─── URL-based routing for /registro/:token and /reset-password/:token ───
   useEffect(() => {
+    const path = window.location.pathname;
+
+    const registerMatch = path.match(/^\/registro\/(.+)$/);
+    if (registerMatch) {
+      setRouteToken(registerMatch[1]);
+      setView("register");
+      return;
+    }
+
+    const resetMatch = path.match(/^\/reset-password\/(.+)$/);
+    if (resetMatch) {
+      setRouteToken(resetMatch[1]);
+      setView("reset-password");
+      return;
+    }
+
+    // Normal session check
     const token = api.getToken();
     const saved = api.getUser();
     if (token && saved) {
-      // Verificar token sin usar el interceptor de 401 que hace reload
       api.me()
         .then(d => { setCurrentUser(d.usuario); setView("app"); })
-        .catch(() => {
-          api.clearToken();
-          api.clearUser();
-          setView("login");
-        });
+        .catch(() => { api.clearToken(); api.clearUser(); setView("login"); });
     } else {
       setView("login");
     }
   }, []);
 
+  const goToLogin = () => {
+    window.history.pushState({}, "", "/");
+    setView("login");
+    setRouteToken(null);
+  };
+
   const handleLogin = (user) => { setCurrentUser(user); setView("app"); setPage("dashboard"); };
+
+  const handleRegisterComplete = (user) => {
+    window.history.pushState({}, "", "/");
+    setCurrentUser(user);
+    setView("app");
+    setPage("dashboard");
+  };
+
   const handleLogout = async () => { try { await api.logout(); } catch (e) {} api.clearToken(); api.clearUser(); setCurrentUser(null); setView("login"); };
 
   const navItems = useMemo(() => {
@@ -611,6 +786,8 @@ export default function App() {
   const pageTitle = navItems.find(i => i.id === page)?.label || "Dashboard";
 
   if (view === "loading") return <div className="login-page"><div className="login-bg" /><Loading text="Iniciando ACTISIS..." /></div>;
+  if (view === "register") return <><RegisterPage token={routeToken} onComplete={handleRegisterComplete} onGoLogin={goToLogin} /><ToastContainer /></>;
+  if (view === "reset-password") return <><ResetPasswordPage token={routeToken} onGoLogin={goToLogin} /><ToastContainer /></>;
   if (view === "login") return <><LoginPage onLogin={handleLogin} onPublicView={() => setView("public")} /><ToastContainer /></>;
   if (view === "public") return <><PublicView onBack={() => setView("login")} /><ToastContainer /></>;
 

@@ -82,6 +82,8 @@ const api = {
   me: () => api.get("/auth/me"),
   invite: (data) => api.post("/auth/invite", data),
   forgotPassword: (data) => api.post("/auth/forgot-password", data),
+  register: (token, data) => api.post(`/auth/register/${token}`, data),
+  resetPassword: (token, data) => api.post(`/auth/reset-password/${token}`, data),
 
   // ─── Activities ───
   getActivities: (params = "") => api.get(`/activities${params ? "?" + params : ""}`),
