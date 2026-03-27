@@ -47,9 +47,10 @@ function LoginPage({ onLogin, onPublicView }) {
           <button className="btn btn-primary" style={{ width: "100%", padding: 12, fontSize: 15, marginTop: 8 }} onClick={handleLogin} disabled={loading}>
             {loading ? <Icons.Loader size={16} /> : <Icons.Lock size={16} />} {loading ? "Ingresando..." : "Iniciar Sesión"}
           </button>
+          {/*Olvidaste la contraseña: Ya esta implementado pero emailJS, solo permite dos templates de correo sin pagar, esta invitacion template, e actividad template
           <div style={{ textAlign: "center", marginTop: 16 }}>
             <button onClick={() => setShowForgot(true)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-body)" }}>¿Olvidó su contraseña?</button>
-          </div>
+          </div>*/}
         </>) : (<>
           <div className="form-group"><label className="form-label">Correo institucional</label><input className="form-input" type="email" placeholder="correo@ufps.edu.co" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} /></div>
           {forgotMsg && <div style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{forgotMsg}</div>}
