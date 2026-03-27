@@ -34,8 +34,10 @@ function LoginPage({ onLogin, onPublicView }) {
   return (
     <div className="login-page"><div className="login-bg" />
       <div className="login-card slide-up">
-        <div style={{ textAlign: "center", marginBottom: 8 }}>
-          <div className="brand-icon" style={{ width: 56, height: 56, fontSize: 24, margin: "0 auto 16px", borderRadius: 14 }}>A</div>
+        <div className="login-logos">
+          <img src="/logoUFPS.png" alt="UFPS" />
+          <div className="login-divider" />
+          <img src="/logo.png" alt="ACTISIS" />
         </div>
         <h1>ACTISIS</h1>
         <p className="subtitle">Plataforma de Gestión de Actividades<br />Programa de Ingeniería de Sistemas</p>
@@ -47,10 +49,9 @@ function LoginPage({ onLogin, onPublicView }) {
           <button className="btn btn-primary" style={{ width: "100%", padding: 12, fontSize: 15, marginTop: 8 }} onClick={handleLogin} disabled={loading}>
             {loading ? <Icons.Loader size={16} /> : <Icons.Lock size={16} />} {loading ? "Ingresando..." : "Iniciar Sesión"}
           </button>
-          {/*Olvidaste la contraseña: Ya esta implementado pero emailJS, solo permite dos templates de correo sin pagar, esta invitacion template, e actividad template
           <div style={{ textAlign: "center", marginTop: 16 }}>
             <button onClick={() => setShowForgot(true)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-body)" }}>¿Olvidó su contraseña?</button>
-          </div>*/}
+          </div>
         </>) : (<>
           <div className="form-group"><label className="form-label">Correo institucional</label><input className="form-input" type="email" placeholder="correo@ufps.edu.co" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} /></div>
           {forgotMsg && <div style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{forgotMsg}</div>}
@@ -80,7 +81,7 @@ function PublicView({ onBack }) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-primary)" }} className="fade-in">
       <div style={{ padding: "20px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", background: "var(--bg-secondary)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}><div className="brand-icon" style={{ width: 36, height: 36, fontSize: 16 }}>A</div><span style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700 }}>ACTISIS</span></div>
+        <div className="public-header-brand"><img src="/logoUFPS.png" alt="UFPS" /><img src="/logo.png" alt="ACTISIS" /></div>
         <button className="btn btn-secondary" onClick={onBack}><Icons.Lock size={14} /> Iniciar Sesión</button>
       </div>
       <div style={{ padding: 32, maxWidth: 1200, margin: "0 auto" }}>
@@ -616,8 +617,10 @@ function RegisterPage({ token, onComplete, onGoLogin }) {
   return (
     <div className="login-page"><div className="login-bg" />
       <div className="login-card slide-up" style={{ maxWidth: 480 }}>
-        <div style={{ textAlign: "center", marginBottom: 8 }}>
-          <div className="brand-icon" style={{ width: 56, height: 56, fontSize: 24, margin: "0 auto 16px", borderRadius: 14 }}>A</div>
+        <div className="login-logos">
+          <img src="/logoUFPS.png" alt="UFPS" />
+          <div className="login-divider" />
+          <img src="/logo.png" alt="ACTISIS" />
         </div>
         <h1>ACTISIS</h1>
         <p className="subtitle">Completar Registro</p>
@@ -687,8 +690,10 @@ function ResetPasswordPage({ token, onGoLogin }) {
   return (
     <div className="login-page"><div className="login-bg" />
       <div className="login-card slide-up">
-        <div style={{ textAlign: "center", marginBottom: 8 }}>
-          <div className="brand-icon" style={{ width: 56, height: 56, fontSize: 24, margin: "0 auto 16px", borderRadius: 14 }}>A</div>
+        <div className="login-logos">
+          <img src="/logoUFPS.png" alt="UFPS" />
+          <div className="login-divider" />
+          <img src="/logo.png" alt="ACTISIS" />
         </div>
         <h1>ACTISIS</h1>
         <p className="subtitle">Restablecer Contraseña</p>
@@ -796,14 +801,14 @@ export default function App() {
     <><ToastContainer />
       <div className="app">
         <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-          <div className="sidebar-brand"><div className="brand-icon">A</div><div className="brand-text"><h2>ACTISIS</h2><span>Ing. Sistemas</span></div></div>
+          <div className="sidebar-brand"><img src="/logo.png" alt="ACTISIS" className="brand-logo" /><div className="brand-text"><h2>ACTISIS</h2><span>Ing. Sistemas · UFPS</span></div></div>
           <nav className="sidebar-nav">{Object.entries(sections).map(([sec, items]) => (
             <div key={sec} className="nav-section"><div className="nav-section-title">{sec}</div>{items.map(it => <button key={it.id} className={`nav-item ${page === it.id ? "active" : ""}`} onClick={() => { setPage(it.id); setSidebarOpen(false); }}><it.icon size={18} />{it.label}</button>)}</div>
           ))}</nav>
           <div className="sidebar-user"><div className="user-avatar">{currentUser?.nombre?.[0]}{currentUser?.apellido?.[0]}</div><div className="user-info"><div className="name">{currentUser?.nombre} {currentUser?.apellido}</div><div className="role">{currentUser?.rol}</div></div><button className="logout-btn" onClick={handleLogout} title="Cerrar Sesión"><Icons.LogOut size={18} /></button></div>
         </aside>
         <main className="main">
-          <header className="header"><div style={{ display: "flex", alignItems: "center", gap: 12 }}><button className="mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}><Icons.Menu size={22} /></button><h1 className="header-title">{pageTitle}</h1></div><span style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span></header>
+          <header className="header"><div style={{ display: "flex", alignItems: "center", gap: 12 }}><button className="mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}><Icons.Menu size={22} /></button><h1 className="header-title">{pageTitle}</h1></div><div style={{ display: "flex", alignItems: "center", gap: 16 }}><span style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span><img src="/logoUFPS.png" alt="UFPS" className="ufps-logo" /></div></header>
           <div className="content">
             {page === "dashboard" && <Dashboard user={currentUser} />}
             {page === "activities" && <ActivitiesModule user={currentUser} />}
