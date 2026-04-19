@@ -344,6 +344,9 @@ function ActivitiesModule({ user }) {
               <td><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setViewing(a)} title="Ver"><Icons.Eye size={14} /></button>
                 <button className="btn btn-secondary btn-sm btn-icon" onClick={() => { setEditing(a); setShowForm(true); }} title="Editar"><Icons.Edit size={14} /></button>
+                {a.driveFolderLink && <a className="btn btn-secondary btn-sm btn-icon" href={a.driveFolderLink} target="_blank" rel="noreferrer" title="Carpeta de evidencias en Drive" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+                  <svg width="13" height="13" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L28.6 48H0c0 1.55.4 3.1 1.2 4.5L6.6 66.85z" fill="#0066DA"/><path d="M43.65 25L29.25 0c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.5A9.07 9.07 0 000 48h28.6L43.65 25z" fill="#00AC47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59l6.05 11.75 8.5 12.05z" fill="#EA4335"/><path d="M43.65 25L58.05 0c-1.35-.8-2.9-1.2-4.5-1.2H33.75c-1.6 0-3.15.45-4.5 1.2L43.65 25z" fill="#00832D"/><path d="M59 48H28.6L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2L59 48z" fill="#2684FC"/><path d="M73.4 25.15L59.1 0c-1.35-.8-2.9-1.2-4.5-1.2h0L43.65 25 59 48h28.55a9.07 9.07 0 000-4.5L73.4 25.15z" fill="#FFBA00"/></svg>
+                </a>}
                 {isAdmin && a.estado === "pendiente" && <>
                   <button className="btn btn-success btn-sm" onClick={() => handleApprove(a._id)} title="Aprobar"><Icons.Check size={14} /> Aprobar</button>
                   <button className="btn btn-danger btn-sm" onClick={() => { setRejectId(a._id); setRejectMotivo(""); }} title="Rechazar"><Icons.X size={14} /></button>
@@ -362,6 +365,18 @@ function ActivitiesModule({ user }) {
           ["Semestre", viewing.semestre], ["Temática", viewing.tematica], ["Descripción", viewing.descripcion], ["Lugar", viewing.lugar], ["Conferencista", spName(viewing.conferencista)], ["Movilidad", viewing.movilidad], ["Convenio", agNum(viewing.convenio)], ["Docente", `${viewing.docente?.nombre || ""} ${viewing.docente?.apellido || ""}`], ["Pública", viewing.publica ? "Sí" : "No"]].map(([l, v]) =>
           <div key={l} className="detail-row"><div className="detail-label">{l}</div><div className="detail-value">{v || "—"}</div></div>
         )}
+        <div className="detail-row">
+          <div className="detail-label">Evidencias</div>
+          <div className="detail-value">
+            {viewing.driveFolderLink
+              ? <a href={viewing.driveFolderLink} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--primary)", fontWeight: 600, textDecoration: "none" }}>
+                  <svg width="16" height="16" viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L28.6 48H0c0 1.55.4 3.1 1.2 4.5L6.6 66.85z" fill="#0066DA"/><path d="M43.65 25L29.25 0c-1.35.8-2.5 1.9-3.3 3.3L1.2 43.5A9.07 9.07 0 000 48h28.6L43.65 25z" fill="#00AC47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59l6.05 11.75 8.5 12.05z" fill="#EA4335"/><path d="M43.65 25L58.05 0c-1.35-.8-2.9-1.2-4.5-1.2H33.75c-1.6 0-3.15.45-4.5 1.2L43.65 25z" fill="#00832D"/><path d="M59 48H28.6L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2L59 48z" fill="#2684FC"/><path d="M73.4 25.15L59.1 0c-1.35-.8-2.9-1.2-4.5-1.2h0L43.65 25 59 48h28.55a9.07 9.07 0 000-4.5L73.4 25.15z" fill="#FFBA00"/></svg>
+                  Abrir carpeta en Google Drive
+                </a>
+              : <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>Carpeta pendiente de creación</span>
+            }
+          </div>
+        </div>
       </div>}</Modal>
       {/* Reject modal */}
       <Modal show={!!rejectId} onClose={() => setRejectId(null)} title="Rechazar Actividad" footer={<>
