@@ -221,15 +221,15 @@ function CalendarView() {
 function ActivityFormModal({ show, onClose, onSave, activity, speakers, agreements, user, docentes }) {
   const isEdit = !!activity;
   const isAdmin = user?.rol === "admin";
-  const empty = { nombre: "", fechaInicio: "", fechaFin: "", horario: "", tipo: "", semestre: "", tematica: "", descripcion: "", lugar: "", conferencista: "", movilidad: "", convenio: "", publica: true, docente: "" };
+  const empty = { nombre: "", fechaInicio: "", fechaFin: "", horaInicio: "", horaFin: "", tipo: "", semestre: "", tematica: "", descripcion: "", lugar: "", conferencista: "", movilidad: "", convenio: "", publica: true, docente: "" };
   const [form, setForm] = useState(empty); const [errors, setErrors] = useState({}); const [saving, setSaving] = useState(false);
   useEffect(() => {
-    if (activity) setForm({ ...empty, ...activity, fechaInicio: toInputDate(activity.fechaInicio), fechaFin: toInputDate(activity.fechaFin), conferencista: activity.conferencista?._id || activity.conferencista || "", convenio: activity.convenio?._id || activity.convenio || "", docente: activity.docente?._id || activity.docente || "" });
+    if (activity) { const parts = (activity.horario || "").split(" - "); setForm({ ...empty, ...activity, fechaInicio: toInputDate(activity.fechaInicio), fechaFin: toInputDate(activity.fechaFin), horaInicio: parts[0] || "", horaFin: parts[1] || "", conferencista: activity.conferencista?._id || activity.conferencista || "", convenio: activity.convenio?._id || activity.convenio || "", docente: activity.docente?._id || activity.docente || "" }); }
     else setForm({ ...empty, docente: isAdmin ? "" : user?._id || "" });
   }, [activity, show]);
   const set = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: "" })); };
-  const validate = () => { const e = {}; if (!form.nombre.trim()) e.nombre = "Requerido"; if (!form.fechaInicio) e.fechaInicio = "Requerido"; if (!form.tipo) e.tipo = "Requerido"; if (!form.semestre) e.semestre = "Requerido"; if (isAdmin && !form.docente) e.docente = "Seleccione un docente"; setErrors(e); return !Object.keys(e).length; };
-  const handleSave = async () => { if (!validate()) return; setSaving(true); try { await onSave({ ...form, fechaFin: form.fechaFin || form.fechaInicio }); onClose(); } catch (e) { addToast(e.message, "error"); } finally { setSaving(false); } };
+  const validate = () => { const e = {}; if (!form.nombre.trim()) e.nombre = "Requerido"; if (!form.fechaInicio) e.fechaInicio = "Requerido"; if (form.fechaFin && form.fechaFin < form.fechaInicio) e.fechaFin = "No puede ser anterior a la fecha de inicio"; if (form.horaInicio && form.horaFin && form.horaFin <= form.horaInicio) e.horario = "La hora fin debe ser posterior a la hora inicio"; if (!form.tipo) e.tipo = "Requerido"; if (!form.semestre) e.semestre = "Requerido"; if (isAdmin && !form.docente) e.docente = "Seleccione un docente"; setErrors(e); return !Object.keys(e).length; };
+  const handleSave = async () => { if (!validate()) return; setSaving(true); const horario = form.horaInicio && form.horaFin ? `${form.horaInicio} - ${form.horaFin}` : form.horaInicio || ""; try { await onSave({ ...form, fechaFin: form.fechaFin || form.fechaInicio, horario }); onClose(); } catch (e) { addToast(e.message, "error"); } finally { setSaving(false); } };
 
   return (
     <Modal show={show} onClose={onClose} title={isEdit ? "Editar Actividad" : "Nueva Actividad"} footer={<>
@@ -253,16 +253,17 @@ function ActivityFormModal({ show, onClose, onSave, activity, speakers, agreemen
       )}
       <div className="form-row">
         <div className="form-group"><label className="form-label">Fecha Inicio *</label><input className="form-input" type="date" value={form.fechaInicio} onChange={e => set("fechaInicio", e.target.value)} />{errors.fechaInicio && <div className="form-error">{errors.fechaInicio}</div>}</div>
-        <div className="form-group"><label className="form-label">Fecha Fin</label><input className="form-input" type="date" value={form.fechaFin} onChange={e => set("fechaFin", e.target.value)} /></div>
+        <div className="form-group"><label className="form-label">Fecha Fin</label><input className="form-input" type="date" value={form.fechaFin} onChange={e => set("fechaFin", e.target.value)} min={form.fechaInicio} />{errors.fechaFin && <div className="form-error">{errors.fechaFin}</div>}</div>
       </div>
       <div className="form-row">
-        <div className="form-group"><label className="form-label">Horario</label><input className="form-input" value={form.horario} onChange={e => set("horario", e.target.value)} placeholder="08:00 - 12:00" /></div>
+        <div className="form-group"><label className="form-label">Hora Inicio</label><input className="form-input" type="time" value={form.horaInicio} onChange={e => set("horaInicio", e.target.value)} /></div>
+        <div className="form-group"><label className="form-label">Hora Fin</label><input className="form-input" type="time" value={form.horaFin} onChange={e => set("horaFin", e.target.value)} />{errors.horario && <div className="form-error">{errors.horario}</div>}</div>
+      </div>
+      <div className="form-row">
         <div className="form-group"><label className="form-label">Tipo *</label><select className="form-select" value={form.tipo} onChange={e => set("tipo", e.target.value)}><option value="">Seleccione...</option>{ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>{errors.tipo && <div className="form-error">{errors.tipo}</div>}</div>
-      </div>
-      <div className="form-row">
         <div className="form-group"><label className="form-label">Semestre *</label><select className="form-select" value={form.semestre} onChange={e => set("semestre", e.target.value)}><option value="">Seleccione...</option>{SEMESTERS.map(s => <option key={s} value={s}>{s}</option>)}</select>{errors.semestre && <div className="form-error">{errors.semestre}</div>}</div>
-        <div className="form-group"><label className="form-label">Movilidad</label><select className="form-select" value={form.movilidad} onChange={e => set("movilidad", e.target.value)}><option value="">Seleccione...</option>{MOBILITY_TYPES.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
       </div>
+      <div className="form-group"><label className="form-label">Movilidad</label><select className="form-select" value={form.movilidad} onChange={e => set("movilidad", e.target.value)}><option value="">Seleccione...</option>{MOBILITY_TYPES.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
       <div className="form-group"><label className="form-label">Temática</label><input className="form-input" value={form.tematica} onChange={e => set("tematica", e.target.value)} /></div>
       <div className="form-group"><label className="form-label">Descripción</label><textarea className="form-textarea" value={form.descripcion} onChange={e => set("descripcion", e.target.value)} /></div>
       <div className="form-row">
@@ -510,7 +511,7 @@ function ReportsModule() {
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Filtros de Informe</h3>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
           <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Desde</label><input className="form-input" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ width: 160 }} /></div>
-          <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Hasta</label><input className="form-input" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ width: 160 }} /></div>
+          <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Hasta</label><input className="form-input" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ width: 160 }} min={dateFrom} /></div>
           <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Tipo</label><select className="form-select" value={fType} onChange={e => setFType(e.target.value)} style={{ width: 160 }}><option value="">Todos</option>{ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
           <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label">Semestre</label><select className="form-select" value={fSem} onChange={e => setFSem(e.target.value)} style={{ width: 140 }}><option value="">Todos</option>{SEMESTERS.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
           <button className="btn btn-secondary" onClick={() => { setDateFrom(""); setDateTo(""); setFType(""); setFSem(""); }}>Limpiar</button>
